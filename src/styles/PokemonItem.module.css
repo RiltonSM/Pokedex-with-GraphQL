@@ -48,3 +48,15 @@
     margin-top: 5px;
     margin-bottom: 0px;
 }
+
+@media (max-width: 768px){
+    .container {
+      width: 45%;
+    }
+}
+
+@media (max-width: 520px){
+    .container {
+      width: 100%;
+    }
+}

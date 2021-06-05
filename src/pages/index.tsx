@@ -12,6 +12,7 @@ import PokemonItem from '../components/PokemonItem';
 import styles from '../styles/Home.module.css';
 
 import { PokemonItemProps } from '../components/PokemonItem';
+import { useEffect, useState } from 'react';
 
 interface HomeProps {
 	pokemons: {
@@ -22,9 +23,69 @@ interface HomeProps {
 	}
 }
 
+const GET_POKEMONS = gql`
+	query pokemons($limit: Int, $offset: Int) {
+		pokemons(limit: $limit, offset: $offset) {
+			count
+			next
+			previous
+			status
+			message
+			results {
+				id
+				url
+				name
+				image
+			}
+		}
+	}
+`
+
 export default function Home({ pokemons }: HomeProps) {
+	const [offset, setOffset] = useState(0);
+	const [page, setPage] = useState(0);
+	const [loadMore, setLoadMore] = useState(true);
+	const [pokemonsBuffer, setPokemonsBuffer] = useState(pokemons);
+	const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+
+	useEffect(() => {
+		const getMorePokemons = async () => {
+			console.log(page, offset)
+			const { data } = await client.query({
+				query: GET_POKEMONS,
+				variables: {
+					limit: 18,
+					offset
+				}
+			});
+	
+			setPokemonsBuffer({
+				...data.pokemons,
+				results: [
+					...pokemonsBuffer.results,
+					...data.pokemons.results
+				]
+			});
+
+			setIsButtonDisabled(false);
+		}
+		if(page > 0){
+			getMorePokemons();
+		}
+	}, [offset]);
+
+	useEffect(() => {
+		setOffset(18 * page)
+	}, [page])
+
+	const nextPage = async () => {
+		setPage((lastPage) => lastPage + 1);
+		setIsButtonDisabled(true);
+	}
+
+
 	const generatePokemons = () => {
-		return pokemons.results.map((pokemon) => {
+		return pokemonsBuffer.results.map((pokemon) => {
 			const image = pokemon.image.replace('pokemon/', 'pokemon/other/official-artwork/');
 			return (
 				<PokemonItem
@@ -53,6 +114,10 @@ export default function Home({ pokemons }: HomeProps) {
 				<div className={styles.pokedexBorder}>
 					<div className={styles.pokedexScreen}>
 						{ generatePokemons() }
+
+						<button className={styles.morePokemonsButton} disabled={isButtonDisabled} onClick={nextPage}>
+							Carregar mais pokemons
+						</button>
 					</div>
 				</div>
 			</main>
@@ -63,30 +128,12 @@ export default function Home({ pokemons }: HomeProps) {
 
 export const getStaticProps: GetStaticProps = async () => {
 	const response = await client.query({
-		query: gql`
-			query pokemons($limit: Int, $offset: Int) {
-				pokemons(limit: $limit, offset: $offset) {
-					count
-					next
-					previous
-					status
-					message
-					results {
-						id
-						url
-						name
-						image
-					}
-				}
-			}
-		`,
+		query: GET_POKEMONS,
 		variables:{
 			limit: 18,
 			offset: 0
 		}
 	});
-
-	console.log(response);
 
 	return{
 		props: {
