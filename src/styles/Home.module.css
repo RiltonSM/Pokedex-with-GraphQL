@@ -108,6 +108,12 @@
     padding: 1rem 0px;
   }
 
+  .content {
+    max-height: calc(100% - 10rem);
+
+    padding-bottom: 0px;
+  }
+
   .pokedexBorder {
     width: 100%;
     padding: 1rem;
